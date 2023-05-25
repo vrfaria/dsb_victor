@@ -70,20 +70,59 @@ You need to work with the `payments` and `members` tables and for now we just wa
 
 ```{r}
 
-payments <- dbGetQuery(sky_westminster, "SELECT * FROM payments")
+#| label: problem-1
+
+payments <- dbGetQuery(sky_westminster, "SELECT * FROM payments") # creates the payments table
+
+members <- dbGetQuery(sky_westminster, "SELECT * FROM members") # creates the members table
+
+payments %>%
+  group_by(member_id) %>% # groups the data by the member_id representing each MP
+  summarise(money_received = sum(value)) %>% # calculates the total value that each MP received in the period
+  left_join(members,by = c("member_id" = "id")) %>% # joins the summarised payment data with the members' information data
+  arrange(desc(money_received)) %>% # orders the MPs by descending order of total money received
+  slice(1) # gets the MP who received the most amount of money, namely Mrs Theresa May, who received a total of 2,809,765 in donations in the period
+  
 
 ```
-
 
 ## Any `entity` that accounts for more than 5% of all donations?
 
 Is there any `entity` whose donations account for more than 5% of the total payments given to MPs over the 2020-2022 interval? Who are they and who did they give money to?
+
+```{r}
+
+#| label: problem-2
+
+entities_5perc <- payments %>% # creates a new object to receive the list of entities that account for more than 5% of total payments
+  mutate(year = as.numeric(substr(date, nchar(date) - 3, nchar(date)))) %>% # creates a new variable containing the information about the year of the donation
+  filter(year %in% c(2020, 2021, 2022)) %>% # filters only the donations that happened between 2020 and 2022
+  group_by(entity) %>% # groups the payment data by entity
+  summarise(total_donations = sum(value)) %>% # calculates the total payments per entity
+  ungroup %>% # ungroup the data so the percentages can be calculated after
+  mutate(donations_perc = total_donations/sum(total_donations)) %>% # calculates the percentage of total payments each entity accounts for
+  filter(donations_perc>0.05) %>% # filters the data to retain only entities that accounted for more than 5% of the total payments
+  print() # prints the results so we can observe that Whiters LLP donated a total of 1,812,732, accounting for 5.25% of total payments and being the only entity that contributed with more than 5%
+
+payments %>%
+  filter(entity %in% entities_5perc$entity) %>% # filters the payment data to keep only observations whose entity is among the ones that accounted for at least 5% of total payments
+  group_by(member_id) %>% # groups the data by MP member's id
+  summarise(total_donations = sum(value)) %>% # calculates the total value received by each of the MPs that those entities donated for
+  left_join(members,by = c("member_id" = "id")) # joins the payment data with the members' information data to get the details on the MPs that received money from those entities. We can observe that Sir Geoffrey Cox is the only person Whiters LLP gave money to
+  
+```
+
 
 ## Do `entity` donors give to a single party or not?
 
 - How many distinct entities who paid money to MPS are there?
 - How many (as a number and %) donated to MPs belonging to a single party only?
 
+```{r}
+
+#| label: problem-3
+
+```
 
 ## Which party has raised the greatest amount of money in each of the years 2020-2022? 
 
@@ -93,11 +132,22 @@ I would like you to write code that generates the following table.
 knitr::include_graphics(here::here("images", "total_donations_table.png"), error = FALSE)
 ```
 
+```{r}
+
+#| label: problem-4
+
+```
 
 ... and then, based on this data, plot the following graph. 
 
 ```{r echo=FALSE, out.width="80%"}
 knitr::include_graphics(here::here("images", "total_donations_graph.png"), error = FALSE)
+```
+
+```{r}
+
+#| label: problem-5
+
 ```
 
 This uses the default ggplot colour pallete, as I dont want you to worry about using the [official colours for each party](https://en.wikipedia.org/wiki/Wikipedia:Index_of_United_Kingdom_political_parties_meta_attributes). However, I would like you to ensure the parties are sorted according to total donations and not alphabetically. You may even want to remove some of the smaller parties that hardly register on the graph. Would facetting help you?  
@@ -136,6 +186,12 @@ Can you query the database and replicate the following plot?
 knitr::include_graphics(here::here("images", "covid-CFR-ICU.png"), error = FALSE)
 ```
 
+```{r}
+
+#| label: problem-6
+
+```
+
 The previous plot is an aggregate plot for all three years of data. What if we wanted to plot Case Fatality Ratio (CFR) over time? Write code that collects the relevant data from the database and plots the following
 
 
@@ -143,6 +199,11 @@ The previous plot is an aggregate plot for all three years of data. What if we w
 knitr::include_graphics(here::here("images", "cfr-icu-overtime.png"), error = FALSE)
 ```
 
+```{r}
+
+#| label: problem-7
+
+```
 
 For each patient, the dataframe also lists the patient's states and county [FIPS code](https://en.wikipedia.org/wiki/Federal_Information_Processing_Standard_state_code). The CDC also has information on the [NCHS Urban-Rural classification scheme for counties](https://www.cdc.gov/nchs/data_access/urban_rural.htm)
 ```{r}
@@ -151,7 +212,7 @@ urban_rural <- read_xlsx(here::here("data", "NCHSURCodes2013.xlsx")) %>%
 ```
 
 
-Each county belongs in seix diffent categoreis, with categories 1-4 being urban areas and categories 5-6 being rural, according to the following criteria captured in `x2013_code`
+Each county belongs in six different categories, with categories 1-4 being urban areas and categories 5-6 being rural, according to the following criteria captured in `x2013_code`
 
 Category name
 
@@ -169,12 +230,21 @@ Can you query the database, extract the relevant information, and reproduce the 
 knitr::include_graphics(here::here("images", "cfr-county-population.png"), error = FALSE)
 ```
 
+```{r}
 
+#| label: problem-8
+
+```
 
 ```{r echo=FALSE, out.width="100%"}
 knitr::include_graphics(here::here("images", "cfr-rural-urban.png"), error = FALSE)
 ```
 
+```{r}
+
+#| label: problem-9
+
+```
 
 # Money in US politics
 
@@ -200,6 +270,12 @@ contributions_tables <- base_url %>%
 ```
 
 - First, make sure you can scrape the data for 2022. Use janitor::clean_names() to rename variables scraped using `snake_case` naming. 
+
+```{r}
+
+#| label: problem-10
+
+```
 
 - Clean the data: 
 
