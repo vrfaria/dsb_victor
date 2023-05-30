@@ -122,6 +122,16 @@ payments %>%
 
 #| label: problem-3
 
+payments %>%
+  summarize(qt_entity=n_distinct(entity)) # counts how many distinct entities paid money to MPS in the assigned period, getting a total of 2,213 distinct entities
+
+payments %>%
+  left_join(members, by = c("member_id" = "id")) %>% # joins the payment data with the members' information data
+  group_by(entity) %>% # groups the data by entity and member who received the payment
+  summarize(qt_parties = n_distinct(party_id)) %>% # counts how many different parties whose members received payments from each entity
+  mutate(single_party = if_else(qt_parties > 1, 0, 1)) %>% # creates a new dummy variable that takes the value of 1 if the entity payed to member(s) of a single party and 0 otherwise
+  summarize(qt_single_party = sum(single_party), perc_single_party = mean(single_party)) # calculates the total of entities that payed to member(s) of a single party and the what percentage they represent in the dataset. In the case, we have a total of 2,036 of such entities, which represent 92% of the entities that performed payments in the period
+
 ```
 
 ## Which party has raised the greatest amount of money in each of the years 2020-2022? 
