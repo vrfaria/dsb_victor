@@ -34,6 +34,8 @@ library(robotstxt) # check if we're allowed to scrape the data
 library(scales)
 library(sf)
 library(readxl)
+
+options(scipen = 999) # disables scientific notation
 ```
 
 # Money in UK politics
@@ -146,6 +148,21 @@ knitr::include_graphics(here::here("images", "total_donations_table.png"), error
 
 #| label: problem-4
 
+parties <- dbGetQuery(sky_westminster, "SELECT * FROM parties") # creates the parties table
+
+party_year_payments <- payments %>%
+  mutate(year = as.numeric(substr(date, nchar(date) - 3, nchar(date)))) %>% # creates a new variable containing the information about the year of the donation
+  filter(year %in% c(2020, 2021, 2022)) %>% # filters only the donations that happened between 2020 and 2022
+  select(year, member_id, value) %>% # drops all irrelevant features for the problem
+  left_join(members, by = c("member_id" = "id")) %>% # joins the payment data with the members' information data
+  rename(member_name = name) %>% # renames the variable that contains the member name information
+  left_join(parties, by = c("party_id" = "id")) %>% # joins the previous data with the parties' information data
+  group_by(year, name) %>% # groups the data by year and party name
+  summarize(total_year_donations = sum(value)) %>% # calculates the total payment to each party each year
+  mutate (prop = total_year_donations / sum(total_year_donations)) # creates a new variable with the % of the total payments of the year each party received
+
+party_year_payments # prints the new table
+
 ```
 
 ... and then, based on this data, plot the following graph. 
@@ -157,6 +174,15 @@ knitr::include_graphics(here::here("images", "total_donations_graph.png"), error
 ```{r}
 
 #| label: problem-5
+
+ggplot(party_year_payments, aes(x=year, y=total_year_donations, fill = reorder(name, -total_year_donations))) + # creates a plot of the total donations per party each year and calls the reorder function to sort the data by the total year donations value in descending order
+geom_bar(stat = "identity", position = "dodge") + # configures the display of the bars in the chart
+labs(fill = "Party", # changes the colour legend's title
+    title = "Conservatives have captured the majority of political donations",# sets the chart title...
+    subtitle = "Donations to political parties, 2020-2022") + # and its subtitle
+theme_minimal() +
+xlab(NULL) + # removes the title from the x-axis
+ylab(NULL) # removes the title from the y-axis
 
 ```
 
@@ -264,7 +290,7 @@ We will scrape and work with data foreign connected PACs that donate to US polit
 
 All data come from [OpenSecrets.org](https://www.opensecrets.org), a *"website tracking the influence of money on U.S. politics, and how that money affects policy and citizens' lives"*.
 
-```{r, eval=FALSE}
+```{r}
 #| label: allow-scraping-opensecrets
 #| warning: false
 #| message: false
@@ -292,7 +318,7 @@ contributions_tables <- base_url %>%
     -   Write a function that converts contribution amounts in `total`, `dems`, and `repubs` from character strings to numeric values.
     -   Separate the `country_of_origin_parent_company` into two such that country and parent company appear in different columns for country-level analysis.
 
-```{r, eval=FALSE}
+```{r}
 # write a function to parse_currency
 parse_currency <- function(x){
   x %>%
