@@ -236,21 +236,20 @@ fatality_rate = cdc_data %>%
 
 #Filtering the data
 fatality_rate %>%
-  drop_na(death_yn) %>%
-  drop_na(sex) %>%
+  drop_na(death_yn, sex) %>%
   group_by(icu_yn,age_group,sex) %>%
   filter(!death_yn %in% c("Unknown","Missing")) %>%
   filter(sex!="Unknown") %>% 
-  mutate(fat_rate = n/sum(n)*100) %>%
+  mutate(fatality_rate = n/sum(n)*100) %>%
   filter(!icu_yn %in% c("Unknown","Missing")) %>% 
   mutate(icu_yn = if_else(icu_yn == "Yes", "ICU Admission", "No ICU Admission")) %>%
   filter(death_yn=="Yes") %>%
 
-  ggplot(aes(x=fat_rate,y=age_group)) +
+  ggplot(aes(x=fatality_rate,y=age_group)) +
     geom_bar(position = "dodge",stat = "identity", fill = "coral") +
     facet_grid(icu_yn ~ sex) +
     labs(title = "Covid CFR by age group, sex and ICU admission") +
-    geom_text(aes(label = round(fat_rate,0)), size = 3, vjust = 0, hjust = 1) +
+    geom_text(aes(label = round(fatality_rate,0)), size = 3, vjust = 0, hjust = 1) +
     scale_x_continuous(labels = function(x) paste0(x, "%")) +
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
@@ -284,18 +283,18 @@ fatality_year %>%
   group_by(case_month,icu_yn,age_group,sex) %>%
   filter(!death_yn %in% c("Unknown","Missing")) %>%
   filter(sex!="Unknown") %>% 
-  mutate(fat_rate = n/sum(n)*100) %>%
+  mutate(fatality_rate = n/sum(n)*100) %>%
   filter(!icu_yn %in% c("Unknown","Missing")) %>% 
   mutate(icu_yn = if_else(icu_yn == "Yes", "ICU Admission", "No ICU Admission")) %>%
   filter(death_yn=="Yes") %>%
-  filter(case_month != "2020-02") %>%
+  filter(!case_month %in% c("2020-02","2020-01")) %>%
   arrange(case_month) %>%
   
-  ggplot(aes(x=case_month, y=fat_rate, color=age_group, group=age_group)) +
+  ggplot(aes(x=case_month, y=fatality_rate, color=age_group, group=age_group)) +
     geom_line() +
     facet_grid(icu_yn ~ sex, scales = "free_y") +
     labs(title = "Covid CFR by age group, sex and ICU admission") +
-    geom_text(aes(label = round(fat_rate,0)), size = 2, vjust = 0, hjust = 0) +
+    geom_text(aes(label = round(fatality_rate,0)), size = 2, vjust = 0, hjust = 0) +
     scale_y_continuous(labels = function(x) paste0(x, "%")) +
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
@@ -338,6 +337,56 @@ knitr::include_graphics(here::here("images", "cfr-county-population.png"), error
 
 #| label: problem-8
 
+#Query
+fatality_county = cdc_data %>% 
+  group_by(case_month,county_fips_code) %>%
+  count(death_yn,sort=TRUE) %>%
+  collect()
+
+#Joining the tables
+fatality_urban_rural = left_join(fatality_county,urban_rural,by=c("county_fips_code"="fips_code"))
+
+#Filtering the data
+fatality_joint %>%
+  drop_na(county_fips_code, death_yn) %>%
+  rename("n_deaths"="n") %>%
+  ungroup() %>%
+  select(case_month,death_yn,n_deaths,x2013_code) %>% 
+  filter(!death_yn %in% c("Unknown","Missing")) %>%
+  filter(!case_month %in% c("2020-02","2020-01")) %>%
+  group_by(case_month,death_yn,x2013_code) %>%
+  summarize(cat_deaths = sum(n_deaths)) %>%
+  pivot_wider(names_from = death_yn, values_from = cat_deaths) %>%
+  mutate(Yes = ifelse(is.na(Yes), 0, Yes), No = ifelse(is.na(No), 0, No)) %>%
+  rename("death_yes" = "Yes", "death_no" = "No") %>%
+  mutate(fatality_rate = death_yes/(death_yes+death_no)*100) %>%
+  mutate(x2013_code = case_when(
+    x2013_code == 1 ~ "1. Large Central Metro",
+    x2013_code == 2 ~ "2. Large Fringe Metro",
+    x2013_code == 3 ~ "3. Medium Metro",
+    x2013_code == 4 ~ "4. Small Metropolitan Population",
+    x2013_code == 5 ~ "5. Micropolitan",
+    TRUE ~ "6. Noncore")
+    )%>%
+  arrange(case_month) %>%
+  
+  ggplot(aes(x=case_month, y=fatality_rate, color=x2013_code, group=x2013_code)) +
+    geom_line() +
+    facet_wrap(~x2013_code, scales = "free_y", ncol = 2, nrow = 3, ) +
+    labs(title = "Covid CFR % by county population") +
+    geom_text(aes(label = round(fatality_rate,1)), size = 2, vjust = 0, hjust = 0) +
+    scale_y_continuous(labels = function(x) paste0(x, "%")) +
+    theme_minimal() +
+    theme(axis.text = element_text(size = 6, color = "gray"),
+          strip.text = element_text(size = 8, color = "white"),
+          strip.background = element_rect(fill = "gray", color = "gray", size = 1),
+          axis.text.x = element_text(angle = 90, hjust = 1, size = 3),
+          panel.grid = element_blank(),
+          legend.position = "none"
+          )+
+    xlab(NULL) + # removes the title from the x-axis
+    ylab(NULL) # removes the title from the y-axis 
+
 ```
 
 ```{r echo=FALSE, out.width="100%"}
@@ -347,6 +396,37 @@ knitr::include_graphics(here::here("images", "cfr-rural-urban.png"), error = FAL
 ```{r}
 
 #| label: problem-9
+
+fatality_joint %>%
+  drop_na(county_fips_code, death_yn) %>%
+  rename("n_deaths"="n") %>%
+  ungroup() %>%
+  select(case_month,death_yn,n_deaths,x2013_code) %>% 
+  filter(!death_yn %in% c("Unknown","Missing")) %>%
+  filter(!case_month %in% c("2020-02","2020-01")) %>%
+  mutate(counties = if_else(x2013_code == 5 | x2013_code == 6, "Rural", "Urban")) %>%
+  group_by(case_month,death_yn,counties) %>%
+  summarize(cat_deaths = sum(n_deaths)) %>%
+  pivot_wider(names_from = death_yn, values_from = cat_deaths) %>%
+  mutate(Yes = ifelse(is.na(Yes), 0, Yes), No = ifelse(is.na(No), 0, No)) %>%
+  rename("death_yes" = "Yes", "death_no" = "No") %>%
+  mutate(fatality_rate = death_yes/(death_yes+death_no)*100) %>%
+  arrange(case_month) %>%
+  
+  ggplot(aes(x=case_month, y=fatality_rate, color=counties, group=counties)) +
+    geom_line() +
+    labs(title = "Covid CFR % by rural and urban areas") +
+    geom_text(aes(label = round(fatality_rate,1)), size = 2, vjust = 0, hjust = 0) +
+    scale_y_continuous(labels = function(x) paste0(x, "%")) +
+    theme_minimal() +
+    theme(axis.text = element_text(size = 6, color = "gray"),
+          strip.text = element_text(size = 8, color = "white"),
+          strip.background = element_rect(fill = "gray", color = "gray", size = 1),
+          axis.text.x = element_text(angle = 90, hjust = 1, size = 5),
+          panel.grid = element_blank(),
+          )+
+    xlab(NULL) + # removes the title from the x-axis
+    ylab(NULL) # removes the title from the y-axis 
 
 ```
 
