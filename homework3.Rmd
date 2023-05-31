@@ -346,7 +346,7 @@ parse_currency <- function(x){
 }
 
 # clean country/parent co and contributions 
-contributions <- contributions %>%
+opensecrets <- opensecrets %>%
   separate(country_of_origin_parent_company, 
            into = c("country", "parent"), 
            sep = "/", 
@@ -365,15 +365,65 @@ contributions <- contributions %>%
 
     -   have one input: the URL of the webpage and should return a data frame.
     -   add a new column to the data frame for `year`. We will want this information when we ultimately have data from all years, so this is a good time to keep track of it. Our function doesn't take a year argument, but the year is embedded in the URL, so we can extract it out of there, and add it as a new column. Use the `str_sub()` function to extract the last 4 characters from the URL. You will probably want to look at the help for this function to figure out how to specify "last 4 characters".
+    
+```{r}
+
+#| label: problem-11
+
+scrape_pac <- function(URL){ #creates a function called scrape_pac with a single variable URL
+  URL %>%
+    read_html() %>% # reads the information in the html from the given URL
+    html_node("table") %>% # gets the information from the html table...
+    html_table(fill = TRUE) %>% # and fills our new table with its values
+    clean_names() %>% # clean the variable names using snake_case style
+  
+    separate(country_of_origin_parent_company, 
+           into = c("country", "parent"), 
+           sep = "/", 
+           extra = "merge") %>%
+      
+    mutate(
+      total = parse_currency(total),
+      dems = parse_currency(dems),
+      repubs = parse_currency(repubs),
+      year =  as.numeric(substr(URL, nchar(URL) - 3, nchar(URL))) # creates a new variable containing the information about the year of the donation
+    )
+}
+
+```
+
 
 -   Define the URLs for 2022, 2020, and 2000 contributions. Then, test your function using these URLs as inputs. Does the function seem to do what you expected it to do?
 
+```{r}
+
+#| label: problem-12
+
+```
+
 -   Construct a vector called `urls` that contains the URLs for each webpage that contains information on foreign-connected PAC contributions for a given year.
+
+```{r}
+
+#| label: problem-13
+
+```
 
 -   Map the `scrape_pac()` function over `urls` in a way that will result in a data frame called `contributions_all`.
 
+```{r}
+
+#| label: problem-14
+
+```
+
 -   Write the data frame to a csv file called `contributions-all.csv` in the `data` folder.
 
+```{r}
+
+#| label: problem-15
+
+```
 
 # Scraping consulting jobs
 
