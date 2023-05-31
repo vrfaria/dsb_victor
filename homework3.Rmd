@@ -228,7 +228,35 @@ knitr::include_graphics(here::here("images", "covid-CFR-ICU.png"), error = FALSE
 
 #| label: problem-6
 
+#Query the data 
+fatality_rate = cdc_data %>% 
+  group_by(icu_yn,age_group,sex) %>%
+  count(death_yn,sort=TRUE) %>%
+  collect()
 
+#Filtering the data
+fatality_rate %>%
+  drop_na(death_yn) %>%
+  drop_na(sex) %>%
+  group_by(icu_yn,age_group,sex) %>%
+  filter(!death_yn %in% c("Unknown","Missing")) %>%
+  filter(sex!="Unknown") %>% 
+  mutate(fat_rate = n/sum(n)*100) %>% 
+  filter(!icu_yn %in% c("Unknown","Missing")) %>% 
+  filter(death_yn=="Yes") %>%
+ 
+
+  ggplot(aes(x=fat_rate,y=age_group)) +
+    geom_bar(position="dodge",stat="identity") +
+    facet_grid(icu_yn ~ sex) +
+    labs(title = "Covid CFR by age group, sex and ICU admission") +
+    geom_text(aes(label = round(fat_rate,0)), size = 3, vjust = 0, hjust = 1) +
+    theme_minimal() +
+    theme(axis.text = element_text(size = 6, color = "gray"),
+          strip.text = element_text(size = 8, color = "white"),
+          strip.background = element_rect(fill = "gray", color = "gray", size = 1))+
+    xlab(NULL) + # removes the title from the x-axis
+    ylab(NULL) # removes the title from the y-axis
 
 ```
 
@@ -475,6 +503,12 @@ Identify the CSS selectors in order to extract the relevant information from thi
 
 Can you get all pages of ads, and not just the first one, `https://www.consultancy.uk/jobs/page/1` into a dataframe?
 
+```{r}
+
+#| label: problem-16
+
+```
+
 
 -   Write a function called `scrape_jobs()` that scrapes information from the webpage for consulting positions. This function should
 
@@ -487,16 +521,38 @@ Can you get all pages of ads, and not just the first one, `https://www.consultan
 ```
 base_url <- "https://www.consultancy.uk/jobs/page/1"
 url <- str_c(base_url, page)
+
 ```
+```{r}
+
+#| label: problem-17
+
+```
+
 
 -   Construct a vector called `pages` that contains the numbers for each page available
 
+```{r}
+
+#| label: problem-18
+
+```
 
 -   Map the `scrape_jobs()` function over `pages` in a way that will result in a data frame called `all_consulting_jobs`.
 
+```{r}
+
+#| label: problem-19
+
+```
+
 -   Write the data frame to a csv file called `all_consulting_jobs.csv` in the `data` folder.
 
+```{r}
 
+#| label: problem-20
+
+```
 
 # Create a shiny app - OPTIONAL
 
