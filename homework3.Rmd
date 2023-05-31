@@ -34,6 +34,8 @@ library(robotstxt) # check if we're allowed to scrape the data
 library(scales)
 library(sf)
 library(readxl)
+library(knitr)
+library(janitor)
 
 options(scipen = 999) # disables scientific notation
 ```
@@ -161,7 +163,7 @@ party_year_payments <- payments %>%
   summarize(total_year_donations = sum(value)) %>% # calculates the total payment to each party each year
   mutate (prop = total_year_donations / sum(total_year_donations)) # creates a new variable with the % of the total payments of the year each party received
 
-party_year_payments # prints the new table
+kable(party_year_payments) # prints the new table
 
 ```
 
@@ -225,6 +227,8 @@ knitr::include_graphics(here::here("images", "covid-CFR-ICU.png"), error = FALSE
 ```{r}
 
 #| label: problem-6
+
+
 
 ```
 
@@ -310,6 +314,14 @@ contributions_tables <- base_url %>%
 ```{r}
 
 #| label: problem-10
+
+opensecrets <- contributions_tables %>% # creates a new table to store the html information
+  html_node("table") %>% # gets the information from the html table...
+  html_table(fill = TRUE) %>% # and fills our new table with its values
+  clean_names() # clean the variable names using snake_case style
+
+# View the cleaned table
+opensecrets
 
 ```
 
