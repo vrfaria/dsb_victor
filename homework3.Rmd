@@ -377,16 +377,16 @@ scrape_pac <- function(URL){ #creates a function called scrape_pac with a single
     html_table(fill = TRUE) %>% # and fills our new table with its values
     clean_names() %>% # clean the variable names using snake_case style
   
-    separate(country_of_origin_parent_company, 
-           into = c("country", "parent"), 
-           sep = "/", 
+    separate(country_of_origin_parent_company, # separates the information about parent company and country of origin...
+           into = c("country", "parent"), # ... by defining the names of the new columns...
+           sep = "/", # ... and the separator
            extra = "merge") %>%
       
     mutate(
-      total = parse_currency(total),
-      dems = parse_currency(dems),
-      repubs = parse_currency(repubs),
-      year =  as.numeric(substr(URL, nchar(URL) - 3, nchar(URL))) # creates a new variable containing the information about the year of the donation
+      total = parse_currency(total), # calls the parse_currency function to remove the currency character from the total amount
+      dems = parse_currency(dems), # calls the parse_currency function to remove the currency character from the dems amount
+      repubs = parse_currency(repubs), # calls the parse_currency function to remove the currency character from the repubs amount
+      year =  as.numeric(substr(URL, nchar(URL) - 3, nchar(URL))) # creates a new variable containing the information about the year
     )
 }
 
@@ -399,6 +399,17 @@ scrape_pac <- function(URL){ #creates a function called scrape_pac with a single
 
 #| label: problem-12
 
+URL2022 <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2022" # defines the URL for 2022
+
+URL2020 <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2020" # defines the URL for 2020
+
+URL2000 <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/2000" # defines the URL for 2000
+
+opensecrets2022 <- scrape_pac(URL2022) # calls the function to obtain the data for the year of 2022
+
+opensecrets2020 <- scrape_pac(URL2020) # calls the function to obtain the data for the year of 2020
+
+opensecrets2000 <- scrape_pac(URL2000) # calls the function to obtain the data for the year of 2000
 ```
 
 -   Construct a vector called `urls` that contains the URLs for each webpage that contains information on foreign-connected PAC contributions for a given year.
