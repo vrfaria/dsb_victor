@@ -655,34 +655,36 @@ url <- str_c(base_url, page)
 
 #| label: problem-17
 
-scrape_jobs = function(base_url){ # creates a new function to scrape all the pages
+scrape_jobs <- function(base_url){ # creates a new function to scrape all the pages
   base_url <- "https://www.consultancy.uk/jobs/page/1" # defines the base URL for scraping
   
   listings_html <- base_url %>% 
     read_html() # reads the html from the given URL
   
 # scrapes the number of pages
-  paging = listings_html %>% 
+  paging <- listings_html %>% 
     html_nodes("#paging") %>%
     html_text()
   
-  paging = strsplit(paging, "\\n")[[1]] # formats the text obtained from the scraping to isolate the desired information
-  paging = paging[[length(paging)-1]]
-  paging = as.numeric(str_replace(paging," jobs found","")) # gets the total number of jobs found in all pages
-  paging = ceiling(paging/45) # divides the number of jobs by the number of jobs per page and round it up to get the total number of pages with job offerings
+  paging <- strsplit(paging, "\\n")[[1]] # formats the text obtained from the scraping to isolate the desired information
+  paging <- paging[[length(paging)-1]]
+  paging <- as.numeric(str_replace(paging," jobs found","")) # gets the total number of jobs found in all pages
+  paging <- ceiling(paging/45) # divides the number of jobs by the number of jobs per page and round it up to get the total number of pages with job offerings
   
-  job_offers = list()
-  for (n in 1:paging){ # Creates a loop for all the pages
-    url = paste("https://www.consultancy.uk/jobs/page/",n,sep="") # adds the page number to the base URL
+  pages <- 1:paging  # creates a vector of page numbers
+  
+  job_offers <- list()
+  for (n in pages){ # Creates a loop for all the pages
+    url <- paste("https://www.consultancy.uk/jobs/page/",n,sep="") # adds the page number to the base URL
     listings_html <- url %>%
       read_html()  # reads the HTML
     
 #Scrapes the jobs
-    job_offers[[n]] = listings_html %>%
+    job_offers[[n]] <- listings_html %>%
       html_nodes("#dataTable") %>%
       html_table()
   }
-  job_offers = bind_rows(job_offers)
+  job_offers <- bind_rows(job_offers)
   return(job_offers) # returns the listing of jobs offers as the output of the function
 }
 
@@ -695,6 +697,8 @@ scrape_jobs = function(base_url){ # creates a new function to scrape all the pag
 
 #| label: problem-18
 
+#already answered within the function (line 674)
+
 ```
 
 -   Map the `scrape_jobs()` function over `pages` in a way that will result in a data frame called `all_consulting_jobs`.
@@ -703,6 +707,12 @@ scrape_jobs = function(base_url){ # creates a new function to scrape all the pag
 
 #| label: problem-19
 
+base_url <- "https://www.consultancy.uk/jobs/page/1"
+
+all_consulting_jobs <- map_dfr(pages, ~scrape_jobs(paste0(base_url, .x))) # performs the mapping in a way that will result in the desired data frama
+
+print(all_consulting_jobs) # prints the resulting data frame
+
 ```
 
 -   Write the data frame to a csv file called `all_consulting_jobs.csv` in the `data` folder.
@@ -710,6 +720,10 @@ scrape_jobs = function(base_url){ # creates a new function to scrape all the pag
 ```{r}
 
 #| label: problem-20
+
+write.csv(bind_rows(all_consulting_jobs), file = here::here("data","all_consulting_jobs.csv")) # creates the desired .csv file
+
+cat("The all_consulting_jobs.csv file has been created in the data folder.\n") # prints a message to confirm the file creation
 
 ```
 
