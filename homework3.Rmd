@@ -228,33 +228,31 @@ knitr::include_graphics(here::here("images", "covid-CFR-ICU.png"), error = FALSE
 
 #| label: problem-6
 
-#Query the data 
-fatality_rate = cdc_data %>% 
-  group_by(icu_yn,age_group,sex) %>%
-  count(death_yn,sort=TRUE) %>%
-  collect()
+fatality_rate = cdc_data %>% # creates a new table to store the cdc data
+  group_by(icu_yn,age_group,sex) %>% # groups the data by ICU admission status, age group and sex
+  count(death_yn,sort=TRUE) %>% # counts how many cases there was both with and without deaths
+  collect() # collects the data from the query and saves it to the table
 
-#Filtering the data
-fatality_rate %>%
-  drop_na(death_yn, sex) %>%
-  group_by(icu_yn,age_group,sex) %>%
-  filter(!death_yn %in% c("Unknown","Missing")) %>%
-  filter(sex!="Unknown") %>% 
-  mutate(fatality_rate = n/sum(n)*100) %>%
-  filter(!icu_yn %in% c("Unknown","Missing")) %>% 
-  mutate(icu_yn = if_else(icu_yn == "Yes", "ICU Admission", "No ICU Admission")) %>%
-  filter(death_yn=="Yes") %>%
+fatality_rate %>% 
+  drop_na(death_yn, sex) %>% # removes all entries with no information about either the death or the sex
+  group_by(icu_yn,age_group,sex) %>% # groups the data by ICU admission status, age group and sex
+  filter(!death_yn %in% c("Unknown","Missing")) %>% # filters the data to remove all observations with unknown or missing values for the death status
+  filter(sex!="Unknown") %>% # filters the data to remove all observations with unknown gender
+  mutate(fatality_rate = n/sum(n)*100) %>% # calculates the fatality rate for each group
+  filter(!icu_yn %in% c("Unknown","Missing")) %>%  # filters the data to remove all observations with unknown or missing values for the ICU admission status
+  mutate(icu_yn = if_else(icu_yn == "Yes", "ICU Admission", "No ICU Admission")) %>% # changes the values of the ICU admission status variable to match the labels wanted in the plot
+  filter(death_yn=="Yes") %>% # filters only the groups relative to death cases, so that each group will be represented only once in the plot
 
-  ggplot(aes(x=fatality_rate,y=age_group)) +
-    geom_bar(position = "dodge",stat = "identity", fill = "coral") +
-    facet_grid(icu_yn ~ sex) +
-    labs(title = "Covid CFR by age group, sex and ICU admission") +
-    geom_text(aes(label = round(fatality_rate,0)), size = 3, vjust = 0, hjust = 1) +
-    scale_x_continuous(labels = function(x) paste0(x, "%")) +
+  ggplot(aes(x=fatality_rate,y=age_group)) + # creates a plot of fatality rate vs. age group
+    geom_bar(position = "dodge",stat = "identity", fill = "coral") + # sets the plot type as a bar chart
+    facet_grid(icu_yn ~ sex) + # creates a grid with the graphics, with ICU status in the horizontal and gender in the vertical
+    labs(title = "Covid CFR by age group, sex and ICU admission") + # adds the chart's title
+    geom_text(aes(label = round(fatality_rate,0)), size = 3, vjust = 0, hjust = 1) + # adds the labels to the bars
+    scale_x_continuous(labels = function(x) paste0(x, "%")) + # adds the x-axis' labels
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
-          strip.text = element_text(size = 8, color = "white"),
-          strip.background = element_rect(fill = "gray", color = "gray", size = 1)) +
+          strip.text = element_text(size = 8, color = "white"), # adds a title to each column and row
+          strip.background = element_rect(fill = "gray", color = "gray", size = 1)) + # adds a background to the columns and rows' titles
     xlab(NULL) + # removes the title from the x-axis
     ylab(NULL) # removes the title from the y-axis
 
@@ -271,37 +269,36 @@ knitr::include_graphics(here::here("images", "cfr-icu-overtime.png"), error = FA
 
 #| label: problem-7
 
-#Query the data 
-fatality_year = cdc_data %>% 
-  group_by(case_month,icu_yn,age_group,sex) %>%
-  count(death_yn,sort=TRUE) %>%
-  collect()
+fatality_year = cdc_data %>% # creates a new table to store the cdc data
+  group_by(case_month,icu_yn,age_group,sex) %>% # groups the data by date, admission status, age group and sex
+  count(death_yn,sort=TRUE) %>% # counts how many cases there was both with and without deaths
+  collect() # collects the data from the query and saves it to the table
 
 #Filtering the data
 fatality_year %>%
-  drop_na(death_yn, sex) %>%
-  group_by(case_month,icu_yn,age_group,sex) %>%
-  filter(!death_yn %in% c("Unknown","Missing")) %>%
-  filter(sex!="Unknown") %>% 
-  mutate(fatality_rate = n/sum(n)*100) %>%
-  filter(!icu_yn %in% c("Unknown","Missing")) %>% 
-  mutate(icu_yn = if_else(icu_yn == "Yes", "ICU Admission", "No ICU Admission")) %>%
-  filter(death_yn=="Yes") %>%
-  filter(!case_month %in% c("2020-02","2020-01")) %>%
-  arrange(case_month) %>%
+  drop_na(death_yn, sex) %>% # removes all entries with no information about either the death or the sex
+  group_by(case_month,icu_yn,age_group,sex) %>% # groups the data by date, ICU admission status, age group and sex
+  filter(!death_yn %in% c("Unknown","Missing")) %>% # filters the data to remove all observations with unknown or missing values for the death status
+  filter(sex!="Unknown") %>% # filters the data to remove all observations with unknown gender
+  mutate(fatality_rate = n/sum(n)*100) %>% # calculates the fatality rate for each group
+  filter(!icu_yn %in% c("Unknown","Missing")) %>%  # filters the data to remove all observations with unknown or missing values for the ICU admission status
+  mutate(icu_yn = if_else(icu_yn == "Yes", "ICU Admission", "No ICU Admission")) %>% # changes the values of the ICU admission status variable to match the labels wanted in the plot
+  filter(death_yn=="Yes") %>% # filters only the groups relative to death cases, so that each group will be represented only once in the plot
+  filter(!case_month %in% c("2020-02","2020-01")) %>% # removes cases from the first 2 months of the dataset to match the example
+  arrange(case_month) %>% # sorts the data by chronological order, so that the plot represents the evolution of the fatality rate
   
-  ggplot(aes(x=case_month, y=fatality_rate, color=age_group, group=age_group)) +
-    geom_line() +
-    facet_grid(icu_yn ~ sex, scales = "free_y") +
-    labs(title = "Covid CFR by age group, sex and ICU admission") +
-    geom_text(aes(label = round(fatality_rate,0)), size = 2, vjust = 0, hjust = 0) +
-    scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  ggplot(aes(x=case_month, y=fatality_rate, color=age_group, group=age_group)) + # creates a plot of fatality rate vs. date for each age group
+    geom_line() + # defines the plot type as a line chart
+    facet_grid(icu_yn ~ sex, scales = "free_y") + # creates a grid with the graphics, with ICU status in the horizontal and gender in the vertical, with free scales for the y-axis (fatality rate)
+    labs(title = "Covid CFR by age group, sex and ICU admission") + # adds the chart's title
+    geom_text(aes(label = round(fatality_rate,0)), size = 2, vjust = 0, hjust = 0) + # adds the labels to the datapoints in the chart
+    scale_y_continuous(labels = function(x) paste0(x, "%")) + # adds the y-axis' labels and adds the % symbol to it
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
-          strip.text = element_text(size = 8, color = "white"),
-          strip.background = element_rect(fill = "gray", color = "gray", size = 1),
-          axis.text.x = element_text(angle = 90, hjust = 1),
-          panel.grid = element_blank())+
+          strip.text = element_text(size = 8, color = "white"), # adds a title to each column and row
+          strip.background = element_rect(fill = "gray", color = "gray", size = 1), + # adds a background to the columns and rows' titles
+          axis.text.x = element_text(angle = 90, hjust = 1), # turns the x-axis labels 90 degrees for better visualization
+          panel.grid = element_blank())+ # removes the grid lines from the plots
     xlab(NULL) + # removes the title from the x-axis
     ylab(NULL) # removes the title from the y-axis 
 
@@ -338,29 +335,29 @@ knitr::include_graphics(here::here("images", "cfr-county-population.png"), error
 #| label: problem-8
 
 #Query
-fatality_county = cdc_data %>% 
-  group_by(case_month,county_fips_code) %>%
-  count(death_yn,sort=TRUE) %>%
-  collect()
+fatality_county = cdc_data %>% # creates a new table to store the cdc data
+  group_by(case_month,county_fips_code) %>% # groups the data by date and  county code
+  count(death_yn,sort=TRUE) %>% # counts how many cases there was both with and without deaths
+  collect() # collects the data from the query and saves it to the table
 
 #Joining the tables
-fatality_urban_rural = left_join(fatality_county,urban_rural,by=c("county_fips_code"="fips_code"))
+fatality_urban_rural = left_join(fatality_county,urban_rural,by=c("county_fips_code"="fips_code")) # joins the previous table with detailed information about the FIPS code and county demographics
 
 #Filtering the data
 fatality_joint %>%
-  drop_na(county_fips_code, death_yn) %>%
-  rename("n_deaths"="n") %>%
-  ungroup() %>%
-  select(case_month,death_yn,n_deaths,x2013_code) %>% 
-  filter(!death_yn %in% c("Unknown","Missing")) %>%
-  filter(!case_month %in% c("2020-02","2020-01")) %>%
-  group_by(case_month,death_yn,x2013_code) %>%
-  summarize(cat_deaths = sum(n_deaths)) %>%
-  pivot_wider(names_from = death_yn, values_from = cat_deaths) %>%
-  mutate(Yes = ifelse(is.na(Yes), 0, Yes), No = ifelse(is.na(No), 0, No)) %>%
-  rename("death_yes" = "Yes", "death_no" = "No") %>%
-  mutate(fatality_rate = death_yes/(death_yes+death_no)*100) %>%
-  mutate(x2013_code = case_when(
+  drop_na(county_fips_code, death_yn) %>% # removes all entries with no information about either the death or the sex
+  rename("n_deaths"="n") %>% # renames the variable containing the count of number of deaths per grouping
+  ungroup() %>% # ungroup the data
+  select(case_month,death_yn,n_deaths,x2013_code) %>% # selects only the relevant features to keep
+  filter(!death_yn %in% c("Unknown","Missing")) %>% # filters the data to remove all observations with unknown or missing values for the death status 
+  filter(!case_month %in% c("2020-02","2020-01")) %>% # removes cases from the first 2 months of the dataset to match the example
+  group_by(case_month,death_yn,x2013_code) %>% # groups the data by the date, death status and county category
+  summarize(cat_deaths = sum(n_deaths)) %>% # summarizes the data to get the total deaths per category
+  pivot_wider(names_from = death_yn, values_from = cat_deaths) %>% # pivots the data into a wider format, creating a column for letal cases and another for non letal cases
+  mutate(Yes = ifelse(is.na(Yes), 0, Yes), No = ifelse(is.na(No), 0, No)) %>% # replaces null values with 0 in both columns just created
+  rename("death_yes" = "Yes", "death_no" = "No") %>% # rename those columns so that their meaning is more explicit
+  mutate(fatality_rate = death_yes/(death_yes+death_no)*100) %>% # calculates the fatality rate for each group 
+  mutate(x2013_code = case_when( # replaces the values in the x2013_code variable so that the code is overwritten with its matching description
     x2013_code == 1 ~ "1. Large Central Metro",
     x2013_code == 2 ~ "2. Large Fringe Metro",
     x2013_code == 3 ~ "3. Medium Metro",
@@ -368,21 +365,21 @@ fatality_joint %>%
     x2013_code == 5 ~ "5. Micropolitan",
     TRUE ~ "6. Noncore")
     )%>%
-  arrange(case_month) %>%
+  arrange(case_month) %>% # sorts the data by chronological order, so that the plot represents the evolution of the fatality rate 
   
-  ggplot(aes(x=case_month, y=fatality_rate, color=x2013_code, group=x2013_code)) +
-    geom_line() +
-    facet_wrap(~x2013_code, scales = "free_y", ncol = 2, nrow = 3, ) +
-    labs(title = "Covid CFR % by county population") +
-    geom_text(aes(label = round(fatality_rate,1)), size = 2, vjust = 0, hjust = 0) +
-    scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  ggplot(aes(x=case_month, y=fatality_rate, color=x2013_code, group=x2013_code)) + # creates a plot of fatality rate vs. date for each age county category
+    geom_line() + # defines the plot type as a line chart
+    facet_wrap(~x2013_code, scales = "free_y", ncol = 2, nrow = 3, ) + # creates a facet wrap based on the county category with a specific grid size of 2 columns and 3 rows
+    labs(title = "Covid CFR % by county population") + # adds the chart's title 
+    geom_text(aes(label = round(fatality_rate,1)), size = 2, vjust = 0, hjust = 0) + # adds the labels to the datapoints in the chart
+    scale_y_continuous(labels = function(x) paste0(x, "%")) + # adds the y-axis' labels and adds the % symbol to it
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
-          strip.text = element_text(size = 8, color = "white"),
-          strip.background = element_rect(fill = "gray", color = "gray", size = 1),
-          axis.text.x = element_text(angle = 90, hjust = 1, size = 3),
-          panel.grid = element_blank(),
-          legend.position = "none"
+          strip.text = element_text(size = 8, color = "white"), # adds a title to each column and row
+          strip.background = element_rect(fill = "gray", color = "gray", size = 5), # adds a background to the columns and rows' titles
+          axis.text.x = element_text(angle = 90, hjust = 1), # turns the x-axis labels 90 degrees for better visualization
+          panel.grid = element_blank(), # removes the grid lines from the plots
+          legend.position = "none" # removes the legend from the plot
           )+
     xlab(NULL) + # removes the title from the x-axis
     ylab(NULL) # removes the title from the y-axis 
@@ -398,32 +395,33 @@ knitr::include_graphics(here::here("images", "cfr-rural-urban.png"), error = FAL
 #| label: problem-9
 
 fatality_joint %>%
-  drop_na(county_fips_code, death_yn) %>%
-  rename("n_deaths"="n") %>%
-  ungroup() %>%
-  select(case_month,death_yn,n_deaths,x2013_code) %>% 
-  filter(!death_yn %in% c("Unknown","Missing")) %>%
-  filter(!case_month %in% c("2020-02","2020-01")) %>%
-  mutate(counties = if_else(x2013_code == 5 | x2013_code == 6, "Rural", "Urban")) %>%
-  group_by(case_month,death_yn,counties) %>%
-  summarize(cat_deaths = sum(n_deaths)) %>%
-  pivot_wider(names_from = death_yn, values_from = cat_deaths) %>%
-  mutate(Yes = ifelse(is.na(Yes), 0, Yes), No = ifelse(is.na(No), 0, No)) %>%
-  rename("death_yes" = "Yes", "death_no" = "No") %>%
-  mutate(fatality_rate = death_yes/(death_yes+death_no)*100) %>%
-  arrange(case_month) %>%
+  drop_na(county_fips_code, death_yn) %>% # removes all entries with no information about either the death or the sex
+  rename("n_deaths"="n") %>%# renames the variable containing the count of number of deaths per grouping
+  ungroup() %>% # ungroup the data
+  select(case_month,death_yn,n_deaths,x2013_code) %>% # selects only the relevant features to keep
+  filter(!death_yn %in% c("Unknown","Missing")) %>% # filters the data to remove all observations with unknown or missing values for the death status 
+  filter(!case_month %in% c("2020-02","2020-01")) %>% # removes cases from the first 2 months of the dataset to match the example
+  mutate(counties = if_else(x2013_code == 5 | x2013_code == 6, "Rural", "Urban")) %>% # creates a new variable to classify the counties into Rural or Urban areas based on their category code
+  group_by(case_month,death_yn,counties) %>% # groups the data by date, death status and county area type
+  summarize(cat_deaths = sum(n_deaths)) %>% # summarizes 
+  # summarizes the data to get the total deaths per category
+  pivot_wider(names_from = death_yn, values_from = cat_deaths) %>% # pivots the data into a wider format, creating a column for letal cases and another for non letal cases
+  mutate(Yes = ifelse(is.na(Yes), 0, Yes), No = ifelse(is.na(No), 0, No)) %>% # replaces null values with 0 in both columns just created
+  rename("death_yes" = "Yes", "death_no" = "No") %>% # rename those columns so that their meaning is more explicit
+  mutate(fatality_rate = death_yes/(death_yes+death_no)*100) %>% # calculates the fatality rate for each group 
+  arrange(case_month) %>% # sorts the data by chronological order, so that the plot represents the evolution of the fatality rate 
   
-  ggplot(aes(x=case_month, y=fatality_rate, color=counties, group=counties)) +
-    geom_line() +
-    labs(title = "Covid CFR % by rural and urban areas") +
-    geom_text(aes(label = round(fatality_rate,1)), size = 2, vjust = 0, hjust = 0) +
+  ggplot(aes(x=case_month, y=fatality_rate, color=counties, group=counties)) + # creates a plot of fatality rate vs. date for each type of county
+    geom_line() + # defines the plot type as a line chart
+    labs(title = "Covid CFR % by rural and urban areas") + # adds the chart's title
+    geom_text(aes(label = round(fatality_rate,1)), size = 2, vjust = 0, hjust = 0) + # adds the labels to the datapoints in the chart
     scale_y_continuous(labels = function(x) paste0(x, "%")) +
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
-          strip.text = element_text(size = 8, color = "white"),
-          strip.background = element_rect(fill = "gray", color = "gray", size = 1),
-          axis.text.x = element_text(angle = 90, hjust = 1, size = 5),
-          panel.grid = element_blank(),
+          strip.text = element_text(size = 8, color = "white"), # adds a title to each column and row
+          strip.background = element_rect(fill = "gray", color = "gray", size = 5), # adds a background to the columns and rows' titles
+          axis.text.x = element_text(angle = 90, hjust = 1), # turns the x-axis labels 90 degrees for better visualization
+          panel.grid = element_blank() # removes the grid lines from the plots
           )+
     xlab(NULL) + # removes the title from the x-axis
     ylab(NULL) # removes the title from the y-axis 
@@ -623,6 +621,20 @@ Can you get all pages of ads, and not just the first one, `https://www.consultan
 
 #| label: problem-16
 
+jobs = listings_html %>% # creates a new table to assign the values scraped from the website
+    html_nodes("#dataTable") %>% # gets the nodes from the datatable object in the html
+    html_table() # scrapes the data from the html table
+
+#Scrape the number of pages and collects the highest number
+pages = listings_html %>% # creates a new object to assign the number of pages in the website
+  html_nodes("#paging") %>% # gets the number of pages from the website
+  html_text() # scrapes the data from the html text
+
+pages = strsplit(pages, "\\n")[[1]] # formats the text obtained from the scraping to isolate the desired information
+pages = pages[[length(pages)-1]] 
+pages = as.numeric(str_replace(pages," jobs found","")) # gets the total number of jobs found in all pages
+pages = ceiling(pages/45) # divides the number of jobs by the number of jobs per page and round it up to get the total number of pages with job offerings
+
 ```
 
 
@@ -642,6 +654,37 @@ url <- str_c(base_url, page)
 ```{r}
 
 #| label: problem-17
+
+scrape_jobs = function(base_url){ # creates a new function to scrape all the pages
+  base_url <- "https://www.consultancy.uk/jobs/page/1" # defines the base URL for scraping
+  
+  listings_html <- base_url %>% 
+    read_html() # reads the html from the given URL
+  
+# scrapes the number of pages
+  paging = listings_html %>% 
+    html_nodes("#paging") %>%
+    html_text()
+  
+  paging = strsplit(paging, "\\n")[[1]] # formats the text obtained from the scraping to isolate the desired information
+  paging = paging[[length(paging)-1]]
+  paging = as.numeric(str_replace(paging," jobs found","")) # gets the total number of jobs found in all pages
+  paging = ceiling(paging/45) # divides the number of jobs by the number of jobs per page and round it up to get the total number of pages with job offerings
+  
+  job_offers = list()
+  for (n in 1:paging){ # Creates a loop for all the pages
+    url = paste("https://www.consultancy.uk/jobs/page/",n,sep="") # adds the page number to the base URL
+    listings_html <- url %>%
+      read_html()  # reads the HTML
+    
+#Scrapes the jobs
+    job_offers[[n]] = listings_html %>%
+      html_nodes("#dataTable") %>%
+      html_table()
+  }
+  job_offers = bind_rows(job_offers)
+  return(job_offers) # returns the listing of jobs offers as the output of the function
+}
 
 ```
 
@@ -689,9 +732,9 @@ There is a lot of explanatory text, comments, etc. You do not need these, so del
 
 # Details
 
--   Who did you collaborate with: TYPE NAMES HERE
--   Approximately how much time did you spend on this problem set: ANSWER HERE
--   What, if anything, gave you the most trouble: ANSWER HERE
+-   Who did you collaborate with: GUSTAVO MENDONCA
+-   Approximately how much time did you spend on this problem set: 10 hours
+-   What, if anything, gave you the most trouble: Scraping the consulting jobs website
 
 **Please seek out help when you need it,** and remember the [15-minute rule](https://dsb2023.netlify.app/syllabus/#the-15-minute-rule){target="_blank"}. You know enough R (and have enough examples of code from class and your readings) to be able to do this. If you get stuck, ask for help from others, post a question on Slack-- and remember that I am here to help too!
 
