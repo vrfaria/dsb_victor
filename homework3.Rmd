@@ -418,6 +418,10 @@ opensecrets2000 <- scrape_pac(URL2000) # calls the function to obtain the data f
 
 #| label: problem-13
 
+root_url <- "https://www.opensecrets.org/political-action-committees-pacs/foreign-connected-pacs/" # defines a root URL not containing the year information
+
+urls <- c(paste0(root_url, 2022), paste0(root_url, 2020), paste0(root_url, 2018), paste0(root_url, 2016), paste0(root_url, 2014), paste0(root_url, 2012), paste0(root_url, 2010), paste0(root_url, 2008), paste0(root_url, 2006), paste0(root_url, 2004), paste0(root_url, 2002), paste0(root_url, 2000)) # adds the year information to the URL for all possible years
+
 ```
 
 -   Map the `scrape_pac()` function over `urls` in a way that will result in a data frame called `contributions_all`.
@@ -426,6 +430,12 @@ opensecrets2000 <- scrape_pac(URL2000) # calls the function to obtain the data f
 
 #| label: problem-14
 
+contributions_all <- list() # defines contributions_all as a list of tables
+
+for (URL in urls) {
+  contributions_all[[URL]] <- scrape_pac(URL) # calls the scrape_pac() function to get the data for all years from the URLs built before
+}
+
 ```
 
 -   Write the data frame to a csv file called `contributions-all.csv` in the `data` folder.
@@ -433,6 +443,8 @@ opensecrets2000 <- scrape_pac(URL2000) # calls the function to obtain the data f
 ```{r}
 
 #| label: problem-15
+
+write_csv(bind_rows(contributions_all), file = here::here("data","contributors_all.csv"))
 
 ```
 
