@@ -30,6 +30,7 @@ library(rpart.plot)
 library(here)
 library(scales)
 library(vip)
+library(C50)
 ```
 
 
@@ -283,6 +284,9 @@ bechdel_folds <- vfold_cv(data = bechdel_train,
                           v = 10, 
                           strata = test)
 bechdel_folds
+
+# The code creates 10 folds with slices of the dataset to potentially be used in a cross-validation method in the     sequence
+
 ```
 
 ## `fit_resamples()`
