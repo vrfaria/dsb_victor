@@ -1,8 +1,12 @@
 ---
-title: "Homework 3: Databases, web scraping, and a basic Shiny app"
+title: 'Homework 3: Databases, web scraping, and a basic Shiny app'
 author: "VICTOR RIOS FARIA"
 date: "`r Sys.Date()`"
 output:
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
   html_document:
     theme: flatly
     highlight: zenburn
@@ -10,8 +14,6 @@ output:
     toc: yes
     toc_float: yes
     code_folding: show
-  pdf_document:
-    toc: yes
 ---
 
 ```{r}
@@ -296,7 +298,7 @@ fatality_year %>%
     theme_minimal() +
     theme(axis.text = element_text(size = 6, color = "gray"),
           strip.text = element_text(size = 8, color = "white"), # adds a title to each column and row
-          strip.background = element_rect(fill = "gray", color = "gray", size = 1), + # adds a background to the columns and rows' titles
+          strip.background = element_rect(fill = "gray", color = "gray", size = 1), # adds a background to the columns and rows' titles
           axis.text.x = element_text(angle = 90, hjust = 1), # turns the x-axis labels 90 degrees for better visualization
           panel.grid = element_blank())+ # removes the grid lines from the plots
     xlab(NULL) + # removes the title from the x-axis
@@ -344,7 +346,7 @@ fatality_county = cdc_data %>% # creates a new table to store the cdc data
 fatality_urban_rural = left_join(fatality_county,urban_rural,by=c("county_fips_code"="fips_code")) # joins the previous table with detailed information about the FIPS code and county demographics
 
 #Filtering the data
-fatality_joint %>%
+fatality_urban_rural %>%
   drop_na(county_fips_code, death_yn) %>% # removes all entries with no information about either the death or the sex
   rename("n_deaths"="n") %>% # renames the variable containing the count of number of deaths per grouping
   ungroup() %>% # ungroup the data
@@ -394,7 +396,7 @@ knitr::include_graphics(here::here("images", "cfr-rural-urban.png"), error = FAL
 
 #| label: problem-9
 
-fatality_joint %>%
+fatality_urban_rural %>%
   drop_na(county_fips_code, death_yn) %>% # removes all entries with no information about either the death or the sex
   rename("n_deaths"="n") %>%# renames the variable containing the count of number of deaths per grouping
   ungroup() %>% # ungroup the data
@@ -620,6 +622,14 @@ Can you get all pages of ads, and not just the first one, `https://www.consultan
 ```{r}
 
 #| label: problem-16
+
+base_url <- "https://www.consultancy.uk/jobs/page/1"
+
+listings_html <- base_url %>%
+  read_html()
+
+
+
 
 jobs = listings_html %>% # creates a new table to assign the values scraped from the website
     html_nodes("#dataTable") %>% # gets the nodes from the datatable object in the html
