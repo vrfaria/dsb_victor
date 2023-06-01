@@ -104,6 +104,17 @@ Check the counts and % (proportions) of the `test` variable in each set.
 
 #| label: problem-2
 
+bechdel_train %>%
+  group_by(test) %>% # groups the data by the test result
+  summarize(qt_movies = n()) %>% # summarizes the data to get the quantity of movies in each category (pass/fail)
+  mutate(perc_movies = qt_movies/sum(qt_movies)) # calculates the percentages in each category
+
+bechdel_test %>%
+  group_by(test) %>% # groups the data by the test result
+  summarize(qt_movies = n()) %>% # summarizes the data to get the quantity of movies in each category (pass/fail)
+  mutate(perc_movies = qt_movies/sum(qt_movies)) # calculates the percentages in each category
+
+# in both cases, the % is close to each other and to the % in the complete dataset analyzed in Problem 1
 ```
 
 ## Feature exploration
