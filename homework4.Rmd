@@ -31,6 +31,7 @@ library(here)
 library(scales)
 library(vip)
 library(C50)
+library(kknn)
 ```
 
 
@@ -124,6 +125,8 @@ bechdel_test %>%
 
 ```{r}
 
+#| label: problem-3a
+
 bechdel %>% 
   select(test, budget_2013, domgross_2013, intgross_2013, imdb_rating, metascore) %>% 
 
@@ -149,7 +152,7 @@ bechdel %>%
 Write a paragraph discussing the output of the following 
 ```{r, warning=FALSE, message=FALSE}
 
-#| label: problem-3
+#| label: problem-3b
 
 bechdel %>% 
   select(test, budget_2013, domgross_2013, intgross_2013, imdb_rating, metascore)%>% 
@@ -317,6 +320,7 @@ Unnest the metrics column from a tidymodels `fit_resamples()`
 collect_metrics(lr_fit)
 collect_metrics(tree_fit)
 
+# We can observe that both models have very similar accuracies (to the 0.001 level) but the lr_fit model's AUC is significantly higher than the tree_fit model's AUC, making it a better model for our problem
 
 ```
 
@@ -340,6 +344,27 @@ tree_preds %>%
   roc_curve(truth = test, .pred_Fail) %>% 
   autoplot()
 
+# Repeat for the logistic regression model
+
+lr_preds <- lr_mod %>% 
+  fit_resamples(
+    test ~ metascore + imdb_rating, 
+    resamples = bechdel_folds,
+    control = control_resamples(save_pred = TRUE) #<<
+  )
+
+# What does the data for ROC look like?
+lr_preds %>% 
+  collect_predictions() %>% 
+  roc_curve(truth = test, .pred_Fail)  
+
+# Draw the ROC
+lr_preds %>% 
+  collect_predictions() %>% 
+  roc_curve(truth = test, .pred_Fail) %>% 
+  autoplot()
+
+# We can see from the different ROC charts that the line drawn for the logistic regression is further from the 45 degrees line if compared to the decision tree model, which relates to its higher AUC value
 ```
 
 
@@ -358,7 +383,7 @@ tree_preds %>%
 
 1. Start the `recipe()`
 1. Define the variables involved
-1. Describe **prep**rocessing [step-by-step]
+1. Describe **prep** rocessing [step-by-step]
 
 ## Collapse Some Categorical Levels
 
@@ -426,7 +451,12 @@ movie_rec
 What if there were no films with `rated` NC-17 in the training data?
 
 -  Will the model have a coefficient for `rated` NC-17?
+
+  Since there is no such category in the training data, no dummy variable will be created for it, so the model will   not have a coefficient for it.
+  
 -  What will happen if the test data includes a film with `rated` NC-17?
+
+  Given that there is no dummy variable with such name, a film with `rated` NC-17 will have zeros in all dummy        variables related with `rated` and would be treated as if it had the sabe `rated` value as the baseline category    (the one omitted from the model, since it has n-1 degrees of freedom, where n is the number of categories within `   rated`)
 
 ## `step_novel()`
 
@@ -481,8 +511,8 @@ movie_rec <- recipe(test ~ ., data = bechdel) %>%
   step_novel(all_nominal(), -all_outcomes()) %>% # Use *before* `step_dummy()` so new level is dummified
   step_dummy(all_nominal(), -all_outcomes()) %>% 
   step_zv(all_numeric(), -all_outcomes())  %>% 
-  step_normalize(all_numeric()) %>% 
-  step_corr(all_predictors(), threshold = 0.75, method = "spearman") 
+  step_normalize(all_numeric()) # %>% 
+  # step_corr(all_predictors(), threshold = 0.75, method = "spearman") 
 
 
 
@@ -579,8 +609,11 @@ knn_wflow <-
 HEADS UP
 
 1. How many models have you specified?
+    5 models have been specified: Logistic Regression, Decision Tree, Random Forest, Boosted Tree and K-Nearest         Neighbours
 2. What's the difference between a model specification and a workflow?
+    A model specification defines what kind of model will be trained, with which algorithm and hyperparameters. A       workflow defines a model specification and a recipe (with its data) to fid into it
 3. Do you need to add a formula (e.g., `test ~ .`)  if you have a recipe?
+    No, you do not need a formula because it is already specified in the recipe definition
 
 
 # Model Comparison
@@ -589,6 +622,218 @@ You now have all your models. Adapt the code from slides `code-from-slides-CA-ho
 
 
 ```{r}
+
+#| label: problem-6
+
+## Logistic regression results{.smaller}
+
+log_res <- log_wflow %>% 
+  fit_resamples(
+    resamples = bechdel_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, accuracy,
+      kap, roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)) 
+
+# Show average performance over all folds (note that we use log_res):
+log_res %>%  collect_metrics(summarize = TRUE)
+
+# Show performance for every single fold:
+log_res %>%  collect_metrics(summarize = FALSE)
+
+
+
+## `collect_predictions()` and get confusion matrix{.smaller}
+
+log_pred <- log_res %>% collect_predictions()
+
+log_pred %>%  conf_mat(test, .pred_class) 
+
+log_pred %>% 
+  conf_mat(test, .pred_class) %>% 
+  autoplot(type = "mosaic") +
+  geom_label(aes(
+      x = (xmax + xmin) / 2, 
+      y = (ymax + ymin) / 2, 
+      label = c("TP", "FN", "FP", "TN")))
+
+
+log_pred %>% 
+  conf_mat(test, .pred_class) %>% 
+  autoplot(type = "heatmap")
+
+
+## ROC Curve
+
+log_pred %>% 
+  group_by(id) %>% # id contains our folds
+  roc_curve(test, .pred_Fail) %>%
+  autoplot()
+
+
+## Decision Tree results
+
+tree_res <-
+  tree_wflow %>% 
+  fit_resamples(
+    resamples = bechdel_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, 
+      accuracy, kap,
+      roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+    ) 
+
+tree_res %>%  collect_metrics(summarize = TRUE)
+
+
+## Random Forest
+
+rf_res <-
+  rf_wflow %>% 
+  fit_resamples(
+    resamples = bechdel_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, 
+      accuracy, kap,
+      roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+    ) 
+
+rf_res %>%  collect_metrics(summarize = TRUE)
+
+## Boosted tree - XGBoost
+
+xgb_res <- 
+  xgb_wflow %>% 
+  fit_resamples(
+    resamples = bechdel_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, 
+      accuracy, kap,
+      roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+    ) 
+
+xgb_res %>% collect_metrics(summarize = TRUE)
+
+## K-nearest neighbour
+
+knn_res <- 
+  knn_wflow %>% 
+  fit_resamples(
+    resamples = bechdel_folds, 
+    metrics = metric_set(
+      recall, precision, f_meas, 
+      accuracy, kap,
+      roc_auc, sens, spec),
+    control = control_resamples(save_pred = TRUE)
+    ) 
+
+knn_res %>% collect_metrics(summarize = TRUE)
+
+
+## Model Comparison
+
+log_metrics <- 
+  log_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  # add the name of the model to every row
+  mutate(model = "Logistic Regression") 
+
+tree_metrics <- 
+  tree_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "Decision Tree")
+
+rf_metrics <- 
+  rf_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "Random Forest")
+
+xgb_metrics <- 
+  xgb_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "XGBoost")
+
+knn_metrics <- 
+  knn_res %>% 
+  collect_metrics(summarise = TRUE) %>%
+  mutate(model = "Knn")
+
+# create dataframe with all models
+model_compare <- bind_rows(log_metrics,
+                           tree_metrics,
+                           rf_metrics,
+                           xgb_metrics,
+                           knn_metrics) 
+
+#Pivot wider to create barplot
+  model_comp <- model_compare %>% 
+  select(model, .metric, mean, std_err) %>% 
+  pivot_wider(names_from = .metric, values_from = c(mean, std_err)) 
+
+# show mean are under the curve (ROC-AUC) for every model
+model_comp %>% 
+  arrange(mean_roc_auc) %>% 
+  mutate(model = fct_reorder(model, mean_roc_auc)) %>% # order results
+  ggplot(aes(model, mean_roc_auc, fill=model)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_brewer(palette = "Blues") +
+   geom_text(
+     size = 3,
+     aes(label = round(mean_roc_auc, 2), 
+         y = mean_roc_auc + 0.08),
+     vjust = 1
+  )+
+  theme_light()+
+  theme(legend.position = "none")+
+  labs(y = NULL)
+
+## `last_fit()` on test set
+
+# - `last_fit()`  fits a model to the whole training data and evaluates it on the test set. 
+# - provide the workflow object of the best model as well as the data split object (not the training data). 
+ 
+last_fit_xgb <- last_fit(xgb_wflow, 
+                        split = data_split,
+                        metrics = metric_set(
+                          accuracy, f_meas, kap, precision,
+                          recall, roc_auc, sens, spec))
+
+last_fit_xgb %>% collect_metrics(summarize = TRUE)
+
+#Compare to training
+xgb_res %>% collect_metrics(summarize = TRUE)
+
+
+## Variable importance using `{vip}` package
+
+library(vip)
+
+last_fit_xgb %>% 
+  pluck(".workflow", 1) %>%   
+  pull_workflow_fit() %>% 
+  vip(num_features = 10) +
+  theme_light()
+
+
+## Final Confusion Matrix
+
+last_fit_xgb %>%
+  collect_predictions() %>% 
+  conf_mat(test, .pred_class) %>% 
+  autoplot(type = "heatmap")
+
+
+## Final ROC curve
+last_fit_xgb %>% 
+  collect_predictions() %>% 
+  roc_curve(test, .pred_Fail) %>% 
+  autoplot()
+
+# From the comparisons made, it is possible to conclude that the Random Forest is the best model for our classification problem, since it has the highest AUC value
 
 ```
 
@@ -600,9 +845,9 @@ There is a lot of explanatory text, comments, etc. You do not need these, so del
 
 # Details
 
--   Who did you collaborate with: TYPE NAMES HERE
+-   Who did you collaborate with: GUSTAVO MENDONCA
 -   Approximately how much time did you spend on this problem set: ANSWER HERE
--   What, if anything, gave you the most trouble: ANSWER HERE
+-   What, if anything, gave you the most trouble: Understanding what I was supposed to do in terms of coding
 
 **Please seek out help when you need it,** and remember the [15-minute rule](https://dsb2023.netlify.app/syllabus/#the-15-minute-rule){target="_blank"}. You know enough R (and have enough examples of code from class and your readings) to be able to do this. If you get stuck, ask for help from others, post a question on Slack-- and remember that I am here to help too!
 
