@@ -138,18 +138,30 @@ bechdel %>%
   theme(legend.position = "none")+
   labs(x=NULL,y = NULL)
 
+# In each of the variables analyzed, there is a series of outliers as depicted by the dots in the boxplots, both for movies that passed the test and movies that failed the test. Regarding movies scores, Metacritics presents less outliers than IMBD. Overall, movies that failed the test have slightly higher averages in all metrics, but there is a very significant overlap in the interquartile distance if compared to movies that passed the test, so no conclusion can be drawn in whether movies that fail the test perform better.
+
 ```
+
 
 ## Scatterplot - Correlation Matrix
 
 Write a paragraph discussing the output of the following 
 ```{r, warning=FALSE, message=FALSE}
+
+#| label: problem-3
+
 bechdel %>% 
   select(test, budget_2013, domgross_2013, intgross_2013, imdb_rating, metascore)%>% 
   ggpairs(aes(colour=test), alpha=0.2)+
   theme_bw()
-```
 
+# The output report shows a few relevant descriptive statistics to understand our data, as follows:
+#     - In the topmost row, we can see the boxplots just like in the previous plot, from which we can identify              outliers in each of the metrics
+#     - In the leftmost column, we have a histogram for each of the metrics, and we observe very similar patterns           for both movies that failed the test and movies that passed the test
+#     - In the main diagonal, we have probability density plots for each metric, where we can observe that the              curves for both movies that failed the test and movies that passed the test have a huge overlapping
+#     - Bellow the main diagonal, we have scatter plots showing the relationship between the metrics two by two.            Symmetrically to the other side of the main diagonal, we have the correlation between the same two                  variables, that associate with the scatter plots. We can observe that domestic gross revenue and                    international gross revenue correlates very strongly with each other, correlates somehow with budget and            very slightly with scores (a little bit stronger with IMDB). However, movie scores are not correlated with          the budget. IMBD and Metacritic scores also have a high correlation. 
+
+```
 
 ## Categorical variables
 
