@@ -167,6 +167,9 @@ bechdel %>%
 
 Write a paragraph discussing the output of the following 
 ```{r}
+
+#| label: problem-4
+
 bechdel %>% 
   group_by(genre, test) %>%
   summarise(n = n()) %>% 
@@ -177,6 +180,11 @@ bechdel %>%
   group_by(rated, test) %>%
   summarise(n = n()) %>% 
   mutate(prop = n/sum(n))
+
+# The first table shows the number and proportion of movies that failed to pass the test and movies that passed the   test by genre. From it, we can see that Action (70.7%), Animation (67.7%), Crime (62.2%), Documentary (100%),       Fantasy (66.7%), Mistery (75.0%) and Sci-Fi (100%) present proportions of movies that failed to pass the test much   higher than the average of the whole dataset. On the other hand, Thriller (100%), Musical (100%), Horror (67.7%)    and Comedy (57.3%) have significantly higher proportions of movies that passed the test than the average of the     whole dataset
+
+# The second table does the same analysis for movies' ratings. From that perspective, movies with G (61.5%) and       NC-17 (83.3%) fail to pass the test much more often than the average, but both have very small samples. Most of     the more significant ratings are closer to the overall average, and PG-13 is the one that shows the lowest          percentage of movies that failled to pass the test (52.9%)
+
 ```
 
 # Train first models. `test ~ metascore + imdb_rating`
@@ -267,6 +275,9 @@ plot(draw_tree)
 Run the code below. What does it return?
 
 ```{r}
+
+#| label: problem-5
+
 set.seed(123)
 bechdel_folds <- vfold_cv(data = bechdel_train, 
                           v = 10, 
